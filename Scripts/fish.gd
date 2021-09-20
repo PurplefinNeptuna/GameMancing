@@ -165,6 +165,6 @@ func get_new_target() -> Vector2:
 	ans.y = rand_range(fish_max_length, fish_max_length + screen_size.y)
 	return ans
 	
-func _input(event: InputEvent) -> void:
+func _input(_event: InputEvent) -> void:
 	if Input.is_action_just_pressed("ui_accept"):
 		debug_show = !debug_show
