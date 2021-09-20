@@ -14,11 +14,14 @@ export(float) var distance_limit = 3
 export(float) var max_speed = 100.0
 export(float) var acceleration = 100.0
 
-export(float) var min_rotate = 0.5
+export(float) var min_rotate = .5
 export(float) var max_rotate_speed = 200.0
 export(float) var rot_acc = 3.0
 
+export(float) var max_idle_time = 2.0
+
 var current_state: int = 0
+var current_idle_time: float = 0.0
 
 var velocity: Vector2 = Vector2.ZERO
 var start_move_pos: Vector2 = Vector2.ZERO
@@ -31,11 +34,17 @@ var start_rot_vec: Vector2 = Vector2.RIGHT
 var rot_max_to_zero: float = 0.0
 var time_rot_to_zero: float = 0.0
 
-onready var screen_size: Vector2 = get_viewport_rect().size
-onready var target_pos: Vector2 = screen_size * 0.5
-onready var target_pos_old: Vector2 = screen_size * 0.5
+var debug_show: bool = false
+
+onready var fish_size: Vector2 = $Sprite.texture.get_size() * scale
+onready var fish_max_length: float = max(fish_size.x, fish_size.y)
+onready var fish_square: Vector2 = Vector2(fish_max_length, fish_max_length)
+onready var screen_size: Vector2 = get_viewport_rect().size - (fish_square * 2)
+onready var target_pos: Vector2 = screen_size * 0.5 + fish_square
+onready var target_pos_old: Vector2 = screen_size * 0.5 + fish_square
 
 func _ready() -> void:
+	randomize()
 	max_rotate_speed = deg2rad(max_rotate_speed)
 	min_rotate = deg2rad(min_rotate)
 
@@ -46,6 +55,8 @@ func _ready() -> void:
 	rot_max_to_zero = .5 * rot_acc * time_rot_to_zero * time_rot_to_zero
 	
 func _draw() -> void:
+	if not debug_show:
+		return
 	draw_line(Vector2.ZERO, velocity.rotated(-rotation) / max_speed * 100, Color.red, 3)
 	draw_arc(Vector2.ZERO, 20, 0, rotate_speed / max_rotate_speed * PI, 16, Color.green, 3)
 
@@ -67,6 +78,8 @@ func _physics_process(delta: float) -> void:
 			reset_starting_point()
 		current_state = AIState.SWIMMING
 	else:
+		if current_state != AIState.IDLING:
+			current_idle_time = max_idle_time
 		current_state = AIState.IDLING
 
 	if target_pos_old != target_pos:
@@ -95,6 +108,11 @@ func ai(start_pos: Vector2, target_dir: Vector2, cur_dir: Vector2, angle: float,
 		AIState.IDLING:
 			velocity = Vector2.ZERO
 			rotate_speed = 0.0
+			
+			current_idle_time -= delta
+			if current_idle_time <= 0.0:
+				target_pos = get_new_target()
+			
 			return
 		AIState.STOP_TO_TURN:
 			rotate_speed = 0.0
@@ -103,7 +121,7 @@ func ai(start_pos: Vector2, target_dir: Vector2, cur_dir: Vector2, angle: float,
 			velocity -= velocity_dir * acceleration * delta
 		AIState.TURNING:
 			velocity = Vector2.ZERO
-			if abs(angle) < rotate_speed * delta:
+			if abs(angle) < deg2rad(min_rotate):
 				rotation = dir.angle()
 			else:
 				var rot_acc_ing: bool = true
@@ -118,7 +136,7 @@ func ai(start_pos: Vector2, target_dir: Vector2, cur_dir: Vector2, angle: float,
 				else:
 					rotate_speed -= rot_acc * delta * sign(rot_from_start)
 				
-				rotate_speed = clamp(abs(rotate_speed), 0.5, max_rotate_speed) * sign(rotate_speed)
+				rotate_speed = clamp(abs(rotate_speed), min_rotate / delta, max_rotate_speed) * sign(rotate_speed)
 				rotate(rotate_speed * delta)
 			return
 		AIState.SWIMMING:
@@ -140,10 +158,13 @@ func ai(start_pos: Vector2, target_dir: Vector2, cur_dir: Vector2, angle: float,
 
 	velocity = Utils.clamp_vec2_to_mag(velocity, cur_dir, 0, max_speed)
 	var _coll = move_and_collide(velocity * delta)
+
+func get_new_target() -> Vector2:
+	var ans := Vector2.ZERO
+	ans.x = rand_range(fish_max_length, fish_max_length + screen_size.x)
+	ans.y = rand_range(fish_max_length, fish_max_length + screen_size.y)
+	return ans
 	
 func _input(event: InputEvent) -> void:
-	if event is InputEventScreenTouch:
-		var touch_event:= event as InputEventScreenTouch
-		if touch_event.pressed:
-			target_pos.x = clamp(touch_event.position.x, 0, screen_size.x)
-			target_pos.y = clamp(touch_event.position.y, 0, screen_size.y)
+	if Input.is_action_just_pressed("ui_accept"):
+		debug_show = !debug_show
