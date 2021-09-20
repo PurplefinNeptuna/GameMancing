@@ -15,8 +15,6 @@ __meta__ = {
 
 [node name="Fish" parent="." instance=ExtResource( 1 )]
 position = Vector2( 640, 360 )
-distance_limit = 3.0
-max_speed = 100.0
 
 [node name="StaticBody2D" type="StaticBody2D" parent="."]
 position = Vector2( 640, 360 )
