@@ -143,7 +143,7 @@ func ai(start_pos: Vector2, target_dir: Vector2, cur_dir: Vector2, angle: float,
 		AIState.MOVING:
 			var rot_right_dir: bool = sign(rot_from_start) == rot_dir
 			
-			if abs(angle) < min_rotate * 2.0:
+			if abs(angle) < min_rotate * 3.0:
 				rotation = dir.angle()
 				rotate_speed = 0
 				reset_rotation()
