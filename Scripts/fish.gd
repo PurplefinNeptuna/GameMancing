@@ -74,10 +74,12 @@ func _physics_process(delta: float) -> void:
 	if abs(target_angle) > abs(min_rotate) and dist > distance_limit:
 		if current_state != AIState.TURNING:
 			reset_starting_point()
+			reset_rotation()
 			current_state = AIState.STOP_TO_TURN
 	elif dist > distance_limit:
 		if current_state != AIState.SWIMMING and current_state != AIState.STOP_TO_TURN:
 			reset_starting_point()
+			reset_rotation()
 		current_state = AIState.SWIMMING
 	else:
 		if current_state != AIState.IDLING:
@@ -86,18 +88,21 @@ func _physics_process(delta: float) -> void:
 
 	if target_pos_old != target_pos:
 		reset_starting_point()
+		reset_rotation()
 	
 	if rotate_speed == 0:
-		start_rot_vec = global_transform.basis_xform(Vector2.RIGHT)
+		reset_rotation()
 	
 	ai(start_move_pos, target_dir, current_dir, target_angle, delta)
 	target_pos_old = target_pos
 
-func reset_starting_point() -> void:
+func reset_rotation() -> void:
 	start_rot_vec = global_transform.basis_xform(Vector2.RIGHT)
+	rotate_speed = 0
+
+func reset_starting_point() -> void:
 	start_move_pos = global_position
 	start_move_dir = (target_pos - global_position).normalized()
-	rotate_speed = 0
 
 func ai(start_pos: Vector2, target_dir: Vector2, cur_dir: Vector2, angle: float, delta: float) -> void:
 	var dist: float = target_dir.length()
