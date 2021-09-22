@@ -57,6 +57,8 @@ func _ready() -> void:
 func _draw() -> void:
 	if not debug_show:
 		return
+	var target_dir: Vector2 = target_pos - global_position
+	draw_line(Vector2.ZERO, target_dir.rotated(-rotation), Color.yellow, 3)
 	draw_line(Vector2.ZERO, velocity.rotated(-rotation) / max_speed * 100, Color.red, 3)
 	draw_arc(Vector2.ZERO, 20, 0, rotate_speed / max_rotate_speed * PI, 16, Color.green, 3)
 
@@ -84,6 +86,9 @@ func _physics_process(delta: float) -> void:
 
 	if target_pos_old != target_pos:
 		reset_starting_point()
+	
+	if rotate_speed == 0:
+		start_rot_vec = global_transform.basis_xform(Vector2.RIGHT)
 	
 	ai(start_move_pos, target_dir, current_dir, target_angle, delta)
 	target_pos_old = target_pos
@@ -115,28 +120,38 @@ func ai(start_pos: Vector2, target_dir: Vector2, cur_dir: Vector2, angle: float,
 			
 			return
 		AIState.STOP_TO_TURN:
-			rotate_speed = 0.0
+			#rotate_speed = 0.0
 			if speed <= distance_limit:
 				current_state = AIState.TURNING
 			velocity -= velocity_dir * acceleration * delta
 		AIState.TURNING:
+			var speed_right_dir: bool = (sign(rot_from_start) == sign(rotate_speed) or rotate_speed == 0)
+			
 			velocity = Vector2.ZERO
-			if abs(angle) < deg2rad(min_rotate):
+			if abs(angle) < min_rotate * 2.0:
 				rotation = dir.angle()
+				rotate_speed = 0.0
 			else:
 				var rot_acc_ing: bool = true
 				if abs(rot_from_start) < rot_max_to_zero * 2:
 					if abs(angle) < abs(rot_from_start) * .5:
 						rot_acc_ing = false
+					else:
+						rot_acc_ing = true
 				elif abs(angle) < rot_max_to_zero:
 					rot_acc_ing = false
+				else:
+					rot_acc_ing = true
+				
+				if not speed_right_dir:
+					rot_acc_ing = !rot_acc_ing
 				
 				if rot_acc_ing:
 					rotate_speed += rot_acc * delta * sign(rot_from_start)
 				else:
 					rotate_speed -= rot_acc * delta * sign(rot_from_start)
 				
-				rotate_speed = clamp(abs(rotate_speed), min_rotate / delta, max_rotate_speed) * sign(rotate_speed)
+				rotate_speed = clamp(rotate_speed, -max_rotate_speed, max_rotate_speed)
 				rotate(rotate_speed * delta)
 			return
 		AIState.SWIMMING:
