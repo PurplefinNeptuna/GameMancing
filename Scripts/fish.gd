@@ -15,7 +15,7 @@ export(float) var acceleration = 100.0
 
 export(float) var min_rotate = .5
 export(float) var max_rotate_speed = 300.0
-export(float) var rot_acc = 4.0
+export(float) var rot_acc = 6.0
 
 export(float) var max_idle_time = 2.0
 
@@ -141,7 +141,7 @@ func ai(start_pos: Vector2, target_dir: Vector2, cur_dir: Vector2, angle: float,
 			
 			return
 		AIState.MOVING:
-			var rot_right_dir: bool = (sign(rot_from_start) == sign(rotate_speed) or rotate_speed == 0)
+			var rot_right_dir: bool = sign(rot_from_start) == rot_dir
 			
 			if abs(angle) < min_rotate * 2.0:
 				rotation = dir.angle()
@@ -190,8 +190,8 @@ func ai(start_pos: Vector2, target_dir: Vector2, cur_dir: Vector2, angle: float,
 			return
 
 	rotate_speed = clamp(rotate_speed, -max_rotate_speed, max_rotate_speed)
-	rotate(rotate_speed * delta)
 	velocity = Utils.clamp_vec2_to_mag(velocity, cur_dir, 0, max_speed)
+	rotate(rotate_speed * delta)
 	velocity = velocity.rotated(rotation - velocity.angle())
 	var _coll = move_and_collide(velocity * delta)
 
