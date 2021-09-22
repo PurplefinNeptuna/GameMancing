@@ -11,11 +11,11 @@ enum AIState {
 export(float) var distance_limit = 3
 export(float) var distance_turn_priority = 30
 export(float) var max_speed = 100.0
-export(float) var acceleration = 100.0
+export(float) var acceleration = 150.0
 
 export(float) var min_rotate = .5
-export(float) var max_rotate_speed = 300.0
-export(float) var rot_acc = 6.0
+export(float) var max_rotate_speed = 250.0
+export(float) var rot_acc = 4.0
 
 export(float) var max_idle_time = 2.0
 
@@ -72,8 +72,12 @@ func _physics_process(delta: float) -> void:
 	var target_dir: Vector2 = target_pos - global_position
 	var target_angle: float = current_dir.angle_to(target_dir)
 	var dist: float = target_dir.length()
+
+	var checkA: bool = dist > distance_limit
+	var checkB: bool = (velocity.length() == 0.0 and rotate_speed == 0.0)
 	
-	if dist > distance_limit:
+	#if ((checkA or checkB) and not(checkA and checkB)):
+	if checkA:
 		if current_state != AIState.MOVING:
 			reset_starting_point()
 			reset_rotation()
@@ -95,6 +99,10 @@ func _physics_process(delta: float) -> void:
 	
 	ai(start_move_pos, target_dir, current_dir, target_angle, delta)
 	target_pos_old = target_pos
+	if checkB:
+		if current_state != AIState.IDLING:
+			current_idle_time = max_idle_time
+		current_state = AIState.IDLING
 
 func reset_rotation() -> void:
 	start_rot_vec = global_transform.basis_xform(Vector2.RIGHT)

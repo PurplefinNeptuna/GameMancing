@@ -17,7 +17,7 @@ func _ready() -> void:
 		var ikan_baru: Fish= (Ikan as PackedScene).instance()
 		add_child_below_node($ColorRect, ikan_baru)
 		ikan_baru.global_position = spawn_pos
-		ikan_baru.target_pos = spawn_pos
+		ikan_baru.target_pos = ikan_baru.get_new_target()
 		ikan_baru.target_pos_old = spawn_pos
 		ikan_baru.rotation = rand_range(0, 2 * PI)
 		ikan_baru.current_state = ikan_baru.AIState.IDLING
