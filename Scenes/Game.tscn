@@ -9,7 +9,7 @@ script = ExtResource( 3 )
 Ikan = ExtResource( 1 )
 ikan_size = 80.0
 spawn_rect = Vector2( 1120, 560 )
-jumlah_ikan = 10
+jumlah_ikan = 1
 
 [node name="ColorRect" type="ColorRect" parent="."]
 anchor_right = 1.0

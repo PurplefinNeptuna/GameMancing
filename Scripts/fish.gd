@@ -74,8 +74,8 @@ func _physics_process(delta: float) -> void:
 	if abs(target_angle) > abs(min_rotate) and dist > distance_limit:
 		if current_state != AIState.TURNING:
 			reset_starting_point()
-			reset_rotation()
-			current_state = AIState.STOP_TO_TURN
+			#reset_rotation()
+			current_state = AIState.TURNING
 	elif dist > distance_limit:
 		if current_state != AIState.SWIMMING and current_state != AIState.STOP_TO_TURN:
 			reset_starting_point()
@@ -88,7 +88,7 @@ func _physics_process(delta: float) -> void:
 
 	if target_pos_old != target_pos:
 		reset_starting_point()
-		reset_rotation()
+		#reset_rotation()
 	
 	if rotate_speed == 0:
 		reset_rotation()
@@ -108,11 +108,15 @@ func ai(start_pos: Vector2, target_dir: Vector2, cur_dir: Vector2, angle: float,
 	var dist: float = target_dir.length()
 	var dist_from_start: float = (target_pos - start_pos).length()
 	var speed: float = velocity.length()
+	var speed_time_to_zero: float = speed / acceleration
+	var dist_to_zero: float = acceleration * speed_time_to_zero * speed_time_to_zero * .5
 	var dir: Vector2 = target_dir.normalized()
 	var velocity_dir: Vector2 = velocity.normalized() if velocity != Vector2.ZERO else dir
 	
 	angle = min(angle, 2 * PI - angle)
 	var rot_from_start: float = start_rot_vec.angle_to(target_dir)
+	var rot_time_to_zero: float = rotate_speed / rot_acc
+	var rot_to_zero: float = rot_acc * rot_time_to_zero * rot_time_to_zero * .5
 
 	match current_state:
 		AIState.IDLING:
@@ -132,14 +136,14 @@ func ai(start_pos: Vector2, target_dir: Vector2, cur_dir: Vector2, angle: float,
 		AIState.TURNING:
 			var speed_right_dir: bool = (sign(rot_from_start) == sign(rotate_speed) or rotate_speed == 0)
 			
-			velocity = Vector2.ZERO
+			#velocity = Vector2.ZERO
 			if abs(angle) < min_rotate * 2.0:
 				rotation = dir.angle()
 				rotate_speed = 0.0
 			else:
 				var rot_acc_ing: bool = true
 				if abs(rot_from_start) < rot_max_to_zero * 2:
-					if abs(angle) < abs(rot_from_start) * .5:
+					if abs(angle) < abs(rot_from_start) * .5 or abs(angle) < rot_to_zero:
 						rot_acc_ing = false
 					else:
 						rot_acc_ing = true
@@ -158,13 +162,12 @@ func ai(start_pos: Vector2, target_dir: Vector2, cur_dir: Vector2, angle: float,
 				
 				rotate_speed = clamp(rotate_speed, -max_rotate_speed, max_rotate_speed)
 				rotate(rotate_speed * delta)
-			return
 		AIState.SWIMMING:
-			rotate_speed = 0.0
+			#rotate_speed = 0.0
 			var accelerating: bool = true
 			
 			if dist_from_start < dist_max_to_zero * 2:
-				if dist < dist_from_start * .5:
+				if dist < dist_from_start * .5 or dist < dist_to_zero:
 					accelerating = false
 			elif dist < dist_max_to_zero:
 				accelerating = false
@@ -177,6 +180,7 @@ func ai(start_pos: Vector2, target_dir: Vector2, cur_dir: Vector2, angle: float,
 			return
 
 	velocity = Utils.clamp_vec2_to_mag(velocity, cur_dir, 0, max_speed)
+	velocity = velocity.rotated(rotation - velocity.angle())
 	var _coll = move_and_collide(velocity * delta)
 
 func get_new_target() -> Vector2:
@@ -188,3 +192,5 @@ func get_new_target() -> Vector2:
 func _input(_event: InputEvent) -> void:
 	if Input.is_action_just_pressed("ui_accept"):
 		debug_show = !debug_show
+	if Input.is_action_just_pressed("button1"):
+		target_pos = get_new_target()
