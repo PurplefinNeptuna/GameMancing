@@ -1,6 +1,7 @@
 extends Node
 
-export(PackedScene) var Ikan
+const Ikan: PackedScene = preload("res://Scenes/Fish.tscn")
+
 export(float) var ikan_size
 export(Vector2) var spawn_rect
 

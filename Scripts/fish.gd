@@ -9,7 +9,7 @@ enum AIState {
 }
 
 export(float) var distance_limit = 3
-export(float) var distance_turn_priority = 30
+export(float) var distance_turn_priority = 50
 export(float) var max_speed = 100.0
 export(float) var acceleration = 150.0
 
@@ -134,9 +134,15 @@ func ai(start_pos: Vector2, target_dir: Vector2, cur_dir: Vector2, angle: float,
 	var debug_rot: float = abs(round(rad2deg(rot_from_start)))
 	debug_angle *= sign(angle) if abs(debug_angle) > 0.0 else 1.0
 	debug_rot *= sign(rot_from_start) if abs(debug_rot) > 0.0 else 1.0
+	var debug_dist: float = round(dist)
+	var debug_dist0: float = round(dist_from_start)
 	$DegText.text = debug_angle as String
 	$DegText.text += "\n"
 	$DegText.text += debug_rot as String
+	$DegText.text += "\n"
+	$DegText.text += debug_dist as String
+	$DegText.text += "\n"
+	$DegText.text += debug_dist0 as String
 
 	match current_state:
 		AIState.IDLING:
