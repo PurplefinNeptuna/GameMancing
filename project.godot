@@ -9,6 +9,11 @@
 config_version=4
 
 _global_script_classes=[ {
+"base": "Area2D",
+"class": "Bob",
+"language": "GDScript",
+"path": "res://Scripts/bob.gd"
+}, {
 "base": "KinematicBody2D",
 "class": "Fish",
 "language": "GDScript",
@@ -20,6 +25,7 @@ _global_script_classes=[ {
 "path": "res://git_api.gdns"
 } ]
 _global_script_class_icons={
+"Bob": "res://Sprites/bob.png",
 "Fish": "res://fish.png",
 "GitAPI": ""
 }

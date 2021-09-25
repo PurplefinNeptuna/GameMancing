@@ -1,11 +1,11 @@
 extends Node
 
-const Ikan: PackedScene = preload("res://Scenes/Fish.tscn")
-
+export(String, FILE, "*tscn") var ikan_location
 export(float) var ikan_size
 export(Vector2) var spawn_rect
-
 export(int) var jumlah_ikan
+
+onready var Ikan: PackedScene = load(ikan_location) as PackedScene
 
 func _ready() -> void:
 	randomize()
@@ -23,3 +23,6 @@ func _ready() -> void:
 		ikan_baru.rotation = rand_range(0, 2 * PI)
 		ikan_baru.current_state = ikan_baru.AIState.IDLING
 		ikan_baru.current_idle_time = 0.0
+		
+		# ini ntar ditaruh kalo pas pancingan dipasang
+		# var _err = $Bob.connect("bait_bitten", ikan_baru, "someone_got_the_bait")

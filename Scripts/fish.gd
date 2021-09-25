@@ -6,9 +6,11 @@ enum AIState {
 	IDLING,
 	MOVING,
 	BITING,
+	FISHING,
 }
 
 export(float) var distance_limit = 3
+export(float) var distance_limit_bite = 10
 export(float) var distance_turn_priority = 50
 export(float) var max_speed = 100.0
 export(float) var acceleration = 150.0
@@ -18,9 +20,11 @@ export(float) var max_rotate_speed = 250.0
 export(float) var rot_acc = 4.0
 
 export(float) var max_idle_time = 2.0
+export(float) var max_biting_time = .4
 
 var current_state: int = 0
 var current_idle_time: float = 0.0
+var current_bite_time: float = 0.0
 
 var velocity: Vector2 = Vector2.ZERO
 var start_move_pos: Vector2 = Vector2.ZERO
@@ -34,7 +38,10 @@ var rot_max_to_zero: float = 0.0
 var time_rot_to_zero: float = 0.0
 
 var debug_show: bool = false
-var target_follow_mouse: bool = false
+#var target_follow_mouse: bool = false
+var bait_nearby: bool = false
+var target_follow_bait: bool = false
+var bait: WeakRef = null
 
 onready var fish_size: Vector2 = $Sprite.texture.get_size() * scale
 onready var fish_max_length: float = max(fish_size.x, fish_size.y)
@@ -63,11 +70,33 @@ func _draw() -> void:
 	draw_arc(Vector2.ZERO, 20, 0, rotate_speed / max_rotate_speed * PI, 16, Color.green, 3)
 
 func _process(_delta: float) -> void:
-	if target_follow_mouse:
-		target_to_mouse()
+#	if target_follow_mouse:
+#		target_to_mouse()
 	update()
 
 func _physics_process(delta: float) -> void:
+	
+	if bait_nearby:
+		var current_bait = bait.get_ref() as Node if bait else null
+		if current_bait:
+			var bait_bitten: bool = current_bait.has_fish_biting if "has_fish_biting" in current_bait else true
+			
+			if target_follow_bait:
+				if bait_bitten and current_state != AIState.BITING:
+					target_follow_bait = false
+					target_pos = get_new_target()
+				else:
+					target_pos = current_bait.global_position
+			else:
+				if not bait_bitten:
+					target_follow_bait = true
+					target_pos = current_bait.global_position
+		else:
+			bait_nearby = false
+			target_follow_bait = false
+			bait = null
+			target_pos = get_new_target()
+	
 	var current_dir: Vector2 = global_transform.basis_xform(Vector2.RIGHT)
 	var target_dir: Vector2 = target_pos - global_position
 	var target_angle: float = current_dir.angle_to(target_dir)
@@ -76,14 +105,20 @@ func _physics_process(delta: float) -> void:
 	var checkA: bool = dist > distance_limit
 	var checkB: bool = (velocity.length() == 0.0 and rotate_speed == 0.0)
 	
+	var cur_bait = bait.get_ref() if bait else null
 	#if ((checkA or checkB) and not(checkA and checkB)):
-	if checkA:
+	if target_follow_bait and cur_bait and "has_fish_biting" in cur_bait and dist < distance_limit_bite and current_state != AIState.BITING:
+		current_state = AIState.BITING
+		current_bite_time = max_biting_time
+		cur_bait.emit_signal("bait_bitten", weakref(self))
+		print("Bait Bite")
+	elif checkA and current_state != AIState.BITING:
 		if current_state != AIState.MOVING:
 			reset_starting_point()
 			reset_rotation()
 		current_state = AIState.MOVING
-	else:
-		if current_state != AIState.IDLING:
+	elif current_state != AIState.BITING:
+		if current_state != AIState.IDLING or current_idle_time <= 0:
 			current_idle_time = max_idle_time
 		current_state = AIState.IDLING
 
@@ -99,8 +134,8 @@ func _physics_process(delta: float) -> void:
 	
 	ai(start_move_pos, target_dir, current_dir, target_angle, delta)
 	target_pos_old = target_pos
-	if checkB:
-		if current_state != AIState.IDLING:
+	if checkB and current_state != AIState.BITING:
+		if current_state != AIState.IDLING or current_idle_time <= 0:
 			current_idle_time = max_idle_time
 		current_state = AIState.IDLING
 
@@ -154,7 +189,30 @@ func ai(start_pos: Vector2, target_dir: Vector2, cur_dir: Vector2, angle: float,
 				target_pos = get_new_target()
 			
 			return
-		AIState.MOVING:
+		AIState.MOVING, AIState.BITING:
+			if current_state == AIState.BITING:
+				var cur_bait = bait.get_ref() if bait else null
+
+				current_bite_time -= delta
+				if current_bite_time <= 0:
+					current_state = AIState.MOVING
+					bait_nearby = false
+					target_follow_bait = false
+					if cur_bait and "has_fish_biting" in cur_bait:
+						cur_bait.emit_signal("bait_left")
+					bait = null
+					target_pos = get_new_target()
+					print("Bait Left")
+					return
+				
+				if not(cur_bait and "has_fish_biting" in cur_bait):
+					current_state = AIState.MOVING
+					target_pos = get_new_target()
+					return
+				else:
+					if dist < 10:
+						velocity = Vector2.ZERO
+
 			var rot_right_dir: bool = sign(rot_from_start) == rot_dir
 			
 			if abs(angle) < min_rotate * 3.0:
@@ -186,7 +244,7 @@ func ai(start_pos: Vector2, target_dir: Vector2, cur_dir: Vector2, angle: float,
 
 			var accelerating: bool = true
 			
-			if is_rotating and dist < distance_turn_priority:
+			if is_rotating and dist < distance_turn_priority and current_state != AIState.BITING:
 				accelerating = false
 			if dist < dist_to_zero:
 				accelerating = false
@@ -209,14 +267,18 @@ func ai(start_pos: Vector2, target_dir: Vector2, cur_dir: Vector2, angle: float,
 	velocity = velocity.rotated(rotation - velocity.angle())
 	var _coll = move_and_collide(velocity * delta)
 
+#func someone_got_the_bait(the_fish) -> void:
+#	if the_fish == self:
+#		return
+
 func get_new_target() -> Vector2:
 	var ans := Vector2.ZERO
 	ans.x = rand_range(fish_max_length, fish_max_length + screen_size.x)
 	ans.y = rand_range(fish_max_length, fish_max_length + screen_size.y)
 	return ans
 
-func target_to_mouse() -> void:
-	target_pos = get_global_mouse_position()
+#func target_to_mouse() -> void:
+#	target_pos = get_global_mouse_position()
 
 func _input(_event: InputEvent) -> void:
 	if Input.is_action_just_pressed("ui_accept"):
@@ -224,5 +286,5 @@ func _input(_event: InputEvent) -> void:
 		$DegText.visible = !$DegText.visible
 	if Input.is_action_just_pressed("button1"):
 		target_pos = get_new_target()
-	if Input.is_action_just_pressed("button2"):
-		target_follow_mouse = !target_follow_mouse
+#	if Input.is_action_just_pressed("button2"):
+#		target_follow_mouse = !target_follow_mouse
