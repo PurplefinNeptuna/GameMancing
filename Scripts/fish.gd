@@ -69,8 +69,6 @@ func _draw() -> void:
 	draw_arc(Vector2.ZERO, 20, 0, rotate_speed / max_rotate_speed * PI, 16, Color.green, 3)
 
 func _process(_delta: float) -> void:
-#	if target_follow_mouse:
-#		target_to_mouse()
 	update()
 
 func _physics_process(delta: float) -> void:
@@ -105,7 +103,6 @@ func _physics_process(delta: float) -> void:
 	var checkB: bool = (velocity.length() == 0.0 and rotate_speed == 0.0)
 	
 	var cur_bait = bait.get_ref() if bait else null
-	#if ((checkA or checkB) and not(checkA and checkB)):
 	if target_follow_bait and cur_bait and "has_fish_biting" in cur_bait and dist < distance_limit_bite and current_state != AIState.BITING:
 		current_state = AIState.BITING
 		current_bite_time = max_biting_time
