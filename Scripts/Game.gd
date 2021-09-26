@@ -23,6 +23,3 @@ func _ready() -> void:
 		ikan_baru.rotation = rand_range(0, 2 * PI)
 		ikan_baru.current_state = ikan_baru.AIState.IDLING
 		ikan_baru.current_idle_time = 0.0
-		
-		# ini ntar ditaruh kalo pas pancingan dipasang
-		# var _err = $Bob.connect("bait_bitten", ikan_baru, "someone_got_the_bait")

@@ -38,7 +38,6 @@ var rot_max_to_zero: float = 0.0
 var time_rot_to_zero: float = 0.0
 
 var debug_show: bool = false
-#var target_follow_mouse: bool = false
 var bait_nearby: bool = false
 var target_follow_bait: bool = false
 var bait: WeakRef = null
@@ -111,7 +110,6 @@ func _physics_process(delta: float) -> void:
 		current_state = AIState.BITING
 		current_bite_time = max_biting_time
 		cur_bait.emit_signal("bait_bitten", weakref(self))
-		print("Bait Bite")
 	elif checkA and current_state != AIState.BITING:
 		if current_state != AIState.MOVING:
 			reset_starting_point()
@@ -202,7 +200,6 @@ func ai(start_pos: Vector2, target_dir: Vector2, cur_dir: Vector2, angle: float,
 						cur_bait.emit_signal("bait_left")
 					bait = null
 					target_pos = get_new_target()
-					print("Bait Left")
 					return
 				
 				if not(cur_bait and "has_fish_biting" in cur_bait):
@@ -267,18 +264,11 @@ func ai(start_pos: Vector2, target_dir: Vector2, cur_dir: Vector2, angle: float,
 	velocity = velocity.rotated(rotation - velocity.angle())
 	var _coll = move_and_collide(velocity * delta)
 
-#func someone_got_the_bait(the_fish) -> void:
-#	if the_fish == self:
-#		return
-
 func get_new_target() -> Vector2:
 	var ans := Vector2.ZERO
 	ans.x = rand_range(fish_max_length, fish_max_length + screen_size.x)
 	ans.y = rand_range(fish_max_length, fish_max_length + screen_size.y)
 	return ans
-
-#func target_to_mouse() -> void:
-#	target_pos = get_global_mouse_position()
 
 func _input(_event: InputEvent) -> void:
 	if Input.is_action_just_pressed("ui_accept"):
@@ -286,5 +276,3 @@ func _input(_event: InputEvent) -> void:
 		$DegText.visible = !$DegText.visible
 	if Input.is_action_just_pressed("button1"):
 		target_pos = get_new_target()
-#	if Input.is_action_just_pressed("button2"):
-#		target_follow_mouse = !target_follow_mouse
